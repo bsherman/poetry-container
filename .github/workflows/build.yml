@@ -49,8 +49,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        poetry_version: [ ${{ needs.get_versions.outputs.poetry }} ]
-        python_version: [ ${{ needs.get_versions.outputs.python }} ]
+        poetry_version:
+          - ${{ needs.get_versions.outputs.poetry }}
+        python_version:
+          - ${{ needs.get_versions.outputs.python }}
     steps:
       # Checkout push-to-registry action GitHub repository
       - name: Checkout Push to Registry action
