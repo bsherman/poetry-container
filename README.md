@@ -58,3 +58,9 @@ podman pull ghcr.io/bsherman/poetry:latest
 This is not an official release of poetry; I am not affiliated with the [poetry project](https://python-poetry.org/), just a user who wants to use it via container.
 
 There is no warranty, but you can read what little code exists in this repository and see how it builds. Nothing hidden here.
+
+## Verification
+
+These images are signed with sigstore's [cosign](https://docs.sigstore.dev/cosign/overview/). You can verify the signature by downloading the `cosign.pub` key from this repo and running the appropriate command:
+
+    cosign verify --key cosign.pub ghcr.io/bsherman/poetry
