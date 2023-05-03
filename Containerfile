@@ -1,6 +1,6 @@
 ARG PYTHON_VERSION=${PYTHON_VERSION:-latest}
 
-FROM cgr.dev/chainguard/python:${PYTHON_VERSION}-dev as builder
+FROM docker.io/library/python:${PYTHON_VERSION}-alpine
 
 ARG PYTHON_VERSION=${PYTHON_VERSION:-latest}
 ARG POETRY_VERSION=${POETRY_VERSION}
@@ -11,25 +11,16 @@ ARG PIP_NO_CACHE_DIR=off
 ARG PYTHONFAULTHANDLER=1
 ARG PYTHONUNBUFFERED=1
 
-USER root
+VOLUME /pwd
+
+VOLUME /root/.cache/pypoetry
+
+WORKDIR /pwd
 
 ENV PATH="$PATH:/root/.local/bin"
 
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
-FROM cgr.dev/chainguard/python:${PYTHON_VERSION}
-
-USER root
-
-WORKDIR /pwd
-
-VOLUME /pwd
-
-VOLUME /root/.cache/pypoetry
-
-ENV PATH="$PATH:/root/.local/bin"
-
-COPY --from=builder /root/.local /root/.local
-
+RUN apk add git && rm -fr /var/cache/apk/*
 
 ENTRYPOINT [ "poetry" ]
