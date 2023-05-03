@@ -1,4 +1,3 @@
----
 name: build-poetry
 on:
   pull_request:
