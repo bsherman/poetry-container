@@ -1,6 +1,8 @@
 # poetry-container
 A reusable containerized python poetry
 
+## Defunct: this approach didn't work as well as hoped and is archived.
+
 [![build-poetry](https://github.com/bsherman/poetry-container/actions/workflows/build.yml/badge.svg)](https://github.com/bsherman/poetry-container/actions/workflows/build.yml)
 
 A containerized python poetry image
