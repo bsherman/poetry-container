@@ -1,8 +1,6 @@
 # poetry-container
 A reusable containerized python poetry
 
-## Defunct: this approach didn't work as well as hoped and is archived.
-
 [![build-poetry](https://github.com/bsherman/poetry-container/actions/workflows/build.yml/badge.svg)](https://github.com/bsherman/poetry-container/actions/workflows/build.yml)
 
 A containerized python poetry image
@@ -11,13 +9,18 @@ A containerized python poetry image
 
 This is a pre-installed [poetry](https://python-poetry.org/) image which runs via docker/podman without need for local python/pip installation.
 
+It can be used to execute poetry locally (in container) to use a `pyproject.toml` to install requirements and run operations on the resulting virtual environment. It can also be used to run webapps or other projects in container without the need to install your own poetry.
+
+Python-slim docker images (based on Debian) are used as this builds libc compatible python shared objects.
+
+
 The image is based on the [offical python alpine image](https://hub.docker.com/_/python) for minimal size.
 
 The image builds daily, and automatically builds the latest python and poetry combo. (Note: I'm not sure how quickly ptyhon deploys new version images after releases, so there could be a few days after one where this doesn't build.)
 
 ## How do I use it?
 
-If using bash or zsh, I'd suggest an alias:
+If using bash or zsh, one can use an alias:
 
 ```bash
 alias poetry='if ! [ -d "$HOME/.cache/pypoetry" ]; \
