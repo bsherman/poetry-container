@@ -29,8 +29,8 @@ jobs:
         # Uses project_id from: https://release-monitoring.org/project/32514/
         run: curl "https://release-monitoring.org/api/v2/versions/?project_id=32514" -o poetry.json
       - name: Fetch python versions
-        # Uses project_id from: https://release-monitoring.org/project/284961/
-        run: curl "https://release-monitoring.org/api/v2/versions/?project_id=284961" -o python.json
+        # Uses project_id from: https://release-monitoring.org/project/13254/
+        run: curl "https://release-monitoring.org/api/v2/versions/?project_id=13254" -o python.json
       - name: Get poetry version
         id: poetry
         run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
