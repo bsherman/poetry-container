@@ -49,13 +49,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        extra_apt_pkgs:
-          - ""
-          - "make gcc build-essential dosfstools mtools isolinux mkisofs"
         poetry_version:
           - ${{ needs.get_versions.outputs.poetry }}
         python_version:
           - ${{ needs.get_versions.outputs.python }}
+        extra_apt_pkgs:
+          - ""
+          - "make gcc build-essential dosfstools mtools isolinux mkisofs"
     steps:
       # Checkout push-to-registry action GitHub repository
       - name: Checkout Push to Registry action
@@ -137,6 +137,7 @@ jobs:
           build-args: |
             POETRY_VERSION=${{ matrix.poetry_version }}
             PYTHON_VERSION=${{ matrix.python_version }}
+            EXTRA_APT_PKGS=${{ matrix.extra_apt_pkgs }}
           labels: ${{ steps.meta.outputs.labels }}
           oci: false
 
