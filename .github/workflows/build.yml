@@ -49,6 +49,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        extra_apt_pkgs:
+          - ""
+          - "make gcc build-essential dosfstools mtools isolinux mkisofs"
         poetry_version:
           - ${{ needs.get_versions.outputs.poetry }}
         python_version:
@@ -64,7 +67,11 @@ jobs:
         run: |
           # Generate a timestamp for creating an image version history
           TIMESTAMP="$(date +%Y%m%d)"
-          VARIANT="${{ matrix.poetry_version }}"
+          if [[ -z "${{ matrix.extra_apt_pkgs }}" ]]; then
+            VARIANT="${{ matrix.poetry_version }}"
+          else
+            VARIANT="${{ matrix.poetry_version }}-extras"
+          fi
 
           COMMIT_TAGS=()
           BUILD_TAGS=()

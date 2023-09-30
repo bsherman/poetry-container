@@ -11,6 +11,7 @@ ARG PIP_NO_CACHE_DIR=off
 ARG PYTHONFAULTHANDLER=1
 ARG PYTHONUNBUFFERED=1
 
+ARG EXTRA_APT_PKGS=${EXTRA_APT_PKGS:-}
 VOLUME /app
 
 VOLUME /root/.cache/pypoetry
@@ -22,7 +23,7 @@ ENV PATH="$PATH:/root/.local/bin"
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git ${EXTRA_APT_PKGS} && \
     apt-get clean all
 
 ENTRYPOINT [ "poetry" ]
