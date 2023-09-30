@@ -4,7 +4,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '35 21 * * *'  # 9:35pm UTC everyday
+    - cron: '35 21 * * 1'  # 9:35pm UTC each Monday
   push:
     branches:
       - main
@@ -95,8 +95,8 @@ jobs:
             BUILD_TAGS+=("${TIMESTAMP}")
             BUILD_TAGS+=("latest")
           else
-            BUILD_TAGS+=("${VARIANT}-${TIMESTAMP}")
-            BUILD_TAGS+=("${VARIANT}")
+            BUILD_TAGS+=("extras-${TIMESTAMP}")
+            BUILD_TAGS+=("extras")
           fi
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
