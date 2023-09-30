@@ -91,8 +91,13 @@ jobs:
               BUILD_TAGS+=("${TAG}-${TIMESTAMP}")
           done
 
-          BUILD_TAGS+=("${TIMESTAMP}")
-          BUILD_TAGS+=("latest")
+          if [[ -z "${{ matrix.extra_apt_pkgs }}" ]]; then
+            BUILD_TAGS+=("${TIMESTAMP}")
+            BUILD_TAGS+=("latest")
+          else
+            BUILD_TAGS+=("${VARIANT}-${TIMESTAMP}")
+            BUILD_TAGS+=("${VARIANT}")
+          fi
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
               echo "Generated the following commit tags: "
