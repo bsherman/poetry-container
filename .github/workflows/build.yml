@@ -18,28 +18,21 @@ env:
 
 jobs:
   get_versions:
-    name: Get python and poetry versions
+    name: Get poetry version
     runs-on: ubuntu-latest
     outputs:
       poetry: ${{ steps.poetry.outputs.version }}
-      python: ${{ steps.python.outputs.version }}
     steps:
       # Use cURL to fetch the given URL, saving the response to `data.json`
       - name: Fetch poetry versions
         # Uses project_id from: https://release-monitoring.org/project/32514/
         run: curl "https://release-monitoring.org/api/v2/versions/?project_id=32514" -o poetry.json
-      - name: Fetch python versions
-        # Uses project_id from: https://release-monitoring.org/project/13254/
-        run: curl "https://release-monitoring.org/api/v2/versions/?project_id=13254" -o python.json
       - name: Get poetry version
         id: poetry
         run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
-      - name: Get python version
-        id: python
-        run: echo "version=$(jq -r '.stable_versions[0]' python.json)" >> $GITHUB_OUTPUT
 
   push-ghcr:
-    name: Build and push image
+    name: build
     runs-on: ubuntu-22.04
     needs: get_versions
     permissions:
@@ -52,7 +45,7 @@ jobs:
         poetry_version:
           - ${{ needs.get_versions.outputs.poetry }}
         python_version:
-          - ${{ needs.get_versions.outputs.python }}
+          - "3.11"
         extra_apt_pkgs:
           - ""
           - "make gcc build-essential dosfstools mtools isolinux mkisofs"
