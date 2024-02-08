@@ -48,7 +48,7 @@ jobs:
           - "3.11"
         extra_apt_pkgs:
           - ""
-          - "make gcc build-essential dosfstools mtools isolinux mkisofs"
+          - "make gcc build-essential dosfstools mtools isolinux mkisofs liblzma-dev"
     steps:
       # Checkout push-to-registry action GitHub repository
       - name: Checkout Push to Registry action
