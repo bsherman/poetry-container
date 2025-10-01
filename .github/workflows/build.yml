@@ -23,25 +23,25 @@ jobs:
     outputs:
       poetry: ${{ steps.poetry.outputs.version }}
     steps:
-      # Use cURL to fetch the given URL, saving the response to `data.json`
       - name: Fetch poetry versions
-        # Uses project_id from: https://release-monitoring.org/project/32514/
         run: curl "https://release-monitoring.org/api/v2/versions/?project_id=32514" -o poetry.json
       - name: Get poetry version
         id: poetry
         run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
 
-  push-ghcr:
-    name: build
-    runs-on: ubuntu-22.04
+  build-image:
+    name: Build Poetry Image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     needs: get_versions
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
         poetry_version:
           - ${{ needs.get_versions.outputs.poetry }}
         python_version:
@@ -50,15 +50,17 @@ jobs:
           - ""
           - "make gcc build-essential dosfstools mtools isolinux mkisofs liblzma-dev syslinux"
     steps:
-      # Checkout push-to-registry action GitHub repository
-      - name: Checkout Push to Registry action
+      - name: Checkout repository
         uses: actions/checkout@v3
+
+      # Set up Buildah/Podman if needed (for example, install latest buildah)
+      - name: Install Buildah
+        run: sudo apt-get update && sudo apt-get install -y buildah podman
 
       - name: Generate tags
         id: generate-tags
         shell: bash
         run: |
-          # Generate a timestamp for creating an image version history
           TIMESTAMP="$(date +%Y%m%d)"
           if [[ -z "${{ matrix.extra_apt_pkgs }}" ]]; then
             VARIANT="${{ matrix.poetry_version }}"
@@ -69,29 +71,33 @@ jobs:
           COMMIT_TAGS=()
           BUILD_TAGS=()
 
-          # Have tags for tracking builds during pull request
+          # Add architecture suffix
+          ARCH="${{ matrix.arch }}"
+
+          # PR/commit tags
           SHA_SHORT="${GITHUB_SHA::7}"
-          COMMIT_TAGS+=("pr-${{ github.event.number }}-${VARIANT}")
-          COMMIT_TAGS+=("${SHA_SHORT}-${VARIANT}")
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            COMMIT_TAGS+=("pr-${{ github.event.number }}-${VARIANT}-${ARCH}")
+            COMMIT_TAGS+=("${SHA_SHORT}-${VARIANT}-${ARCH}")
+            COMMIT_TAGS+=("pr-${{ github.event.number }}-${ARCH}")
+            COMMIT_TAGS+=("${SHA_SHORT}-${ARCH}")
+          fi
 
-          COMMIT_TAGS+=("pr-${{ github.event.number }}")
-          COMMIT_TAGS+=("${SHA_SHORT}")
-
-          BUILD_TAGS=("${VARIANT}")
-
-          # Append matching timestamp tags to keep a version history
+          # Main branch/version tags
+          BUILD_TAGS=("${VARIANT}-${ARCH}")
           for TAG in "${BUILD_TAGS[@]}"; do
               BUILD_TAGS+=("${TAG}-${TIMESTAMP}")
           done
 
           if [[ -z "${{ matrix.extra_apt_pkgs }}" ]]; then
-            BUILD_TAGS+=("${TIMESTAMP}")
-            BUILD_TAGS+=("latest")
+            BUILD_TAGS+=("${TIMESTAMP}-${ARCH}")
+            BUILD_TAGS+=("latest-${ARCH}")
           else
-            BUILD_TAGS+=("extras-${TIMESTAMP}")
-            BUILD_TAGS+=("extras")
+            BUILD_TAGS+=("extras-${TIMESTAMP}-${ARCH}")
+            BUILD_TAGS+=("extras-${ARCH}")
           fi
 
+          # Select which tags to use
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
               echo "Generated the following commit tags: "
               for TAG in "${COMMIT_TAGS[@]}"; do
@@ -108,81 +114,81 @@ jobs:
               echo "${TAG}"
           done
 
+          # Output as space-separated string
           echo "alias_tags=${alias_tags[*]}" >> $GITHUB_OUTPUT
 
-      # Build metadata
       - name: Image Metadata
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         id: meta
         with:
           images: |
-             ${{ env.IMAGE_NAME }}
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.description=A containerized python poetry image
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
 
-      # Build image using Buildah action
-      - name: Build Image
-        id: build_image
-        uses: redhat-actions/buildah-build@v2
-        with:
-          containerfiles: |
-            ./Containerfile
-          image: ${{ env.IMAGE_NAME }}
-          tags: |
-            ${{ steps.generate-tags.outputs.alias_tags }}
-          build-args: |
-            POETRY_VERSION=${{ matrix.poetry_version }}
-            PYTHON_VERSION=${{ matrix.python_version }}
-            EXTRA_APT_PKGS=${{ matrix.extra_apt_pkgs }}
-          labels: ${{ steps.meta.outputs.labels }}
-          oci: false
+      - name: Login to GHCR with podman
+        run: podman login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
-      # Workaround bug where capital letters in your GitHub username make it impossible to push to GHCR.
-      # https://github.com/macbre/push-to-ghcr/issues/12
-      - name: Lowercase Registry
-        id: registry_case
-        uses: ASzc/change-string-case-action@v5
-        with:
-          string: ${{ env.IMAGE_REGISTRY }}
+      - name: Build image with Buildah
+        run: |
+          buildah bud \
+            --arch ${{ matrix.arch }} \
+            --build-arg POETRY_VERSION=${{ matrix.poetry_version }} \
+            --build-arg PYTHON_VERSION=${{ matrix.python_version }} \
+            --build-arg EXTRA_APT_PKGS="${{ matrix.extra_apt_pkgs }}" \
+            --label org.opencontainers.image.title=${{ env.IMAGE_NAME }} \
+            --label org.opencontainers.image.description="A containerized python poetry image" \
+            --label io.artifacthub.package.readme-url="https://raw.githubusercontent.com/${{ github.repository }}/main/README.md" \
+            -t ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.poetry_version }}-${{ matrix.arch }} \
+            -f Containerfile .
 
-      # Push the image to GHCR (Image Registry)
-      - name: Push To GHCR
-        uses: redhat-actions/push-to-registry@v2
-        id: push
+      - name: Push images to GHCR
+        run: |
+          for tag in ${{ steps.generate-tags.outputs.tags }}; do
+            podman push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:$tag
+          done
+
+      - name: Output image ref for manifest
+        id: img-ref
+        run: echo "ref=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.poetry_version }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+
+  combine-manifest:
+    name: Combine manifests
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - name: Install Podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+
+      - name: Login to GHCR
+        run: podman login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest
         env:
-          REGISTRY_USER: ${{ github.actor }}
-          REGISTRY_PASSWORD: ${{ github.token }}
-        with:
-          image: ${{ steps.build_image.outputs.image }}
-          tags: ${{ steps.build_image.outputs.tags }}
-          registry: ${{ steps.registry_case.outputs.lowercase }}
-          username: ${{ env.REGISTRY_USER }}
-          password: ${{ env.REGISTRY_PASSWORD }}
-          extra-args: |
-            --disable-content-trust
+          OWNER: ${{ github.repository_owner }}
+          IMAGE: poetry
+          POETRY_VER: ${{ needs.get_versions.outputs.poetry }}
+        run: |
+          IMAGE=ghcr.io/$OWNER/$IMAGE
+          MANIFEST_TAG=$POETRY_VER
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Create manifest
+          podman manifest create $IMAGE:$MANIFEST_TAG
 
-      # Sign container
+          # Add both arch images (built by previous jobs)
+          podman manifest add $IMAGE:$MANIFEST_TAG docker://$IMAGE:${MANIFEST_TAG}-amd64
+          podman manifest add $IMAGE:$MANIFEST_TAG docker://$IMAGE:${MANIFEST_TAG}-arm64
+
+          # Push the manifest to GHCR
+          podman manifest push --all $IMAGE:$MANIFEST_TAG docker://$IMAGE:$MANIFEST_TAG
+
+      # Install Cosign
       - uses: sigstore/cosign-installer@v3.0.2
 
-      # Only needed when running `cosign sign` using a key
-
-      - name: Sign container image
-        run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.registry_case.outputs.lowercase }}/${{ steps.build_image.outputs.image }}@${TAGS}
+      - name: Sign multi-arch manifest with Cosign
         env:
-          TAGS: ${{ steps.push.outputs.digest }}
-          COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
-
-      - name: Echo outputs
         run: |
-          echo "${{ toJSON(steps.push.outputs) }}"
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ steps.manifest.outputs.manifest_ref }}

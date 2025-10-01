@@ -16,7 +16,7 @@ Python-slim docker images (based on Debian) are used as this builds libc compati
 
 The image is based on the [offical python alpine image](https://hub.docker.com/_/python) for minimal size.
 
-The image builds daily, and automatically builds the latest python 3.11.x and poetry combo.
+The image builds weekly, and automatically builds the latest python 3.11.x and poetry combo.
 
 ## How do I use it?
 
