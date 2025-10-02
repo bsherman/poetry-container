@@ -157,6 +157,7 @@ jobs:
         shell: bash
         run: |
           set -e
+          set -x
 
           # Find the first image.txt
           IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
