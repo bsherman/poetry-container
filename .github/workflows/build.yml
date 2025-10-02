@@ -184,7 +184,7 @@ jobs:
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
             MANIFEST_REF="$IMAGE:$MANFIFEST_TAG"
-            podman manifest create "$MANFIFEST_REF"
+            podman manifest create "$MANIFEST_REF"
 
             # Add all arch images
             for ref in "${ARCH_IMAGES[@]}"; do
