@@ -64,14 +64,10 @@ jobs:
         uses: docker/metadata-action@v5
         id: meta
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
-          tags: |
-            type=sha,format=short,suffix=-${{ matrix.variant }}-${{ matrix.arch }}
 
       - name: Build Image
         id: build
@@ -80,8 +76,6 @@ jobs:
           containerfiles: |
             ./Containerfile
           image: ${{ env.IMAGE_NAME }}
-          tags: |
-            ${{ steps.meta.outputs.tags }}
           build-args: |
             POETRY_VERSION=${{ matrix.poetry }}
             PYTHON_VERSION=${{ matrix.python }}
@@ -89,29 +83,20 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           oci: false
 
-      - name: Push image to registry
-        uses: redhat-actions/push-to-registry@v2
-        id: push
-        with:
-          tags: ${{ steps.build.outputs.tags }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          extra-args: |
-            --disable-content-trust
-
-      - name: Write image info artifact
+      - name: Save image info artifact
         run: |
-          # NOTE: this only works because our metadata creates a single tag for build-image
-          echo "${{ steps.build.outputs.tags }}" > image.txt
           echo "${{ steps.meta.outputs.labels }}" > labels.txt
+          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" > name.txt
+          podman save --format oci-archive ${{ env.IMAGE_NAME }} | zstd - -o oci.tar.zst
 
-      - name: Upload image info artifact
+      - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: image-info-${{ matrix.variant }}-${{ matrix.arch }}
+          name: image-${{ matrix.variant }}-${{ matrix.arch }}
           path: |
-            image.txt
             labels.txt
+            name.txt
+            oci.tar.zst
 
   combine-manifest:
     name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
@@ -133,11 +118,18 @@ jobs:
           - "git"
           - "extras"
     steps:
-      - name: Download image info artifact
+      - name: Download image artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: image-info-${{ matrix.variant }}-*
-          path: image-info
+          pattern: image-${{ matrix.variant }}-*
+          path: images
+
+      - name: Load Images
+        run: |
+          for oci in images/oci*.zst; do
+            zstd --decompress --stdout oci.tar.zst | podman load
+          done
+          podman images
 
       - name: Get timestamp
         id: timestamp
@@ -166,14 +158,15 @@ jobs:
           set -x
 
           # Find the first image.txt
-          IMAGE_REF=$(head -n1 -q image-info/image-info-*/image.txt)
-          echo "Found IMAGE_REF=$IMAGE_REF"
-          IMAGE="${IMAGE_REF%%:*}"
-          echo "IMAGE=$IMAGE"
+          IMAGE=$(head -n1 -q image/image-${{ matrix.variant }}-*/name.txt)
+          echo "Found IMAGE=$IMAGE"
+
+          echo "Stop execution intentionally"
+          exit 2
 
           # Collect image references for all arches
           ARCH_IMAGES=()
-          for imgfile in image-info/image-info-*/image.txt; do
+          for imgfile in image/image-*/name.txt; do
             ref=$(cat "$imgfile")
             echo "Found image: $ref"
             ARCH_IMAGES+=("$ref")
@@ -224,8 +217,7 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
-          IMAGE_REF=$(head -n1 -q image-info/image-info-*/image.txt)
-          IMAGE="${IMAGE_REF%%:*}"
+          IMAGE=$(head -n1 -q image/image-${{ matrix.variant }}-*/name.txt)
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
