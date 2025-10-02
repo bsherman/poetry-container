@@ -191,7 +191,7 @@ jobs:
 
             # Add annotations to manifest index
             label="org.opencontainers.image.description=Sample description for $MANIFEST_TAG"
-            podman manifest annotate --index --annotation "$label" "${MANIFEST}"
+            podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
 
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
