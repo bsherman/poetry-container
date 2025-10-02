@@ -177,7 +177,7 @@ jobs:
           ANNOTATIONS=""
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            ANNOTATIONS="$ANNOTATIONS --annotation \"$key=$value\""
+            ANNOTATIONS="$ANNOTATIONS \"$key=$value\""
           done < "$LABELS_FILE"
 
           echo "IMAGE=$IMAGE"
