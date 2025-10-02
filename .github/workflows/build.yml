@@ -60,20 +60,13 @@ jobs:
       - name: Image Metadata
         uses: docker/metadata-action@v5
         id: meta
-        env:
-          DESCRIPTION: A containerized python poetry image with ${{ matrix.variant }}
-          README: https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
         with:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-          annotations: |
-            manifest:org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            manifest:org.opencontainers.image.description=${{ env.DESCRIPTION }}
-            manifest:io.artifacthub.package.readme-url=${{ env.README }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.description=${{ env.DESCRIPTION }}
-            io.artifacthub.package.readme-url=${{ env.README }}
+            org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
+            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
           tags: |
             type=sha,format=short,suffix=-${{ matrix.variant }}-${{ matrix.arch }}
 
@@ -184,11 +177,13 @@ jobs:
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
             MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
-            podman manifest create "$MANIFEST_REF"
+            MANIFEST_SHA=$(podman manifest create "$MANIFEST_REF")
+
+            podman manifest annotate --annotation "org.opencontainers.image.description=Description goes here" $MANIFEST_REF $MANIFEST_SHA
 
             # Add all arch images
-            for ref in "${ARCH_IMAGES[@]}"; do
-              podman manifest add $MANIFEST_REF "docker://$ref"
+            for IMG_REF in "${ARCH_IMAGES[@]}"; do
+              podman manifest add $MANIFEST_REF "docker://$IMG_REF"
             done
 
             podman manifest push --all $MANIFEST_REF docker://$MANIFEST_REF
