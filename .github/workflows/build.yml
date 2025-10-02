@@ -96,7 +96,7 @@ jobs:
 
       - name: Push image to registry
         run: |
-          podman push ${{ split(steps.meta.outputs.images, ',')[0] }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }}
+          podman push ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }}
 
   combine-manifest:
     name: Combine manifests
