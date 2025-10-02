@@ -177,7 +177,7 @@ jobs:
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
             MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
-            MANIFEST_SHA=$(podman manifest create "$MANIFEST_REF")
+            MANIFEST_SHA=sha256:$(podman manifest create "$MANIFEST_REF")
 
             podman manifest annotate --annotation "org.opencontainers.image.description=Description goes here" $MANIFEST_REF $MANIFEST_SHA
 
