@@ -86,12 +86,13 @@ jobs:
       - name: Build image with Buildah
         run: |
           LABEL_ARGS=$(echo '${{ steps.meta.outputs.labels }}' | sed 's/^/--label /')
+          # shellcheck disable=SC2046
           buildah bud \
             --arch ${{ matrix.arch }} \
             --build-arg POETRY_VERSION=${{ matrix.poetry_version }} \
             --build-arg PYTHON_VERSION=${{ matrix.python_version }} \
             --build-arg VARIANT="${{ matrix.variant }}" \
-            $LABEL_ARGS \
+            $(echo "$LABEL_ARGS") \
             -t ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }} \
             -f Containerfile .
 
