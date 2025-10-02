@@ -32,6 +32,10 @@ jobs:
     name: Build Poetry ${{ matrix.variant }} (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     needs: get-versions
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     outputs:
       image: ${{ steps.first-image.outputs.image }}
     strategy:
@@ -109,6 +113,10 @@ jobs:
   combine-manifest:
     name: Combine manifests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     needs: [get-versions, build-image]
     strategy:
       fail-fast: false
