@@ -54,15 +54,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Update Podman & Buildah
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y ppa:projectatomic/ppa
-          sudo apt-get update
-          sudo apt-get install -y buildah
-          buildah --version
-
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
