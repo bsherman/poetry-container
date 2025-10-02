@@ -173,16 +173,16 @@ jobs:
           # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
           LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
 
-          # Prepare annotation args (with quoted values)
-          ANNOTATION_ARGS=""
+          # Prepare annotation
+          ANNOTATIONS=""
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            ANNOTATION_ARGS="$ANNOTATION_ARGS --annotation \"$key=$value\""
+            ANNOTATIONS="$ANNOTATIONS --annotation \"$key=$value\""
           done < "$LABELS_FILE"
 
           echo "IMAGE=$IMAGE"
           echo "TAGS=${{ steps.meta.outputs.tags }}"
-          echo "ANNOTATION_ARGS=${ANNOTATION_ARGS}"
+          echo "ANNOTATIONS=${ANNOTATIONS}"
 
           IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
@@ -196,8 +196,12 @@ jobs:
               podman manifest add $MANIFEST_REF "docker://$ref"
             done
 
-            # Push manifest with all annotations
-            eval podman manifest push --all $ANNOTATION_ARGS $MANIFEST_REF docker://$MANIFEST_REF
+            for label in "${ANNOTATIONS[@]}"; do
+                echo "Annotating manifest with label "${label}""
+                podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
+            done
+
+            podman manifest push --all $MANIFEST_REF docker://$MANIFEST_REF
           done
 
       # Install Cosign
