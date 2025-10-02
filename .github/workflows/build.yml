@@ -166,7 +166,7 @@ jobs:
           set -x
 
           # Find the first image.txt
-          IMAGE_REF=$(head -n1 image-info/image-info-*/image.txt)
+          IMAGE_REF=$(head -n1 -q image-info/image-info-*/image.txt)
           echo "Found IMAGE_REF=$IMAGE_REF"
           IMAGE="${IMAGE_REF%%:*}"
           echo "IMAGE=$IMAGE"
@@ -224,7 +224,7 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
-          IMAGE_REF=$(head -n1 image-info/image-info-*/image.txt)
+          IMAGE_REF=$(head -n1 -q image-info/image-info-*/image.txt)
           IMAGE="${IMAGE_REF%%:*}"
           TAGS=()
           while IFS= read -r line; do
