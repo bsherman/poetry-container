@@ -60,13 +60,20 @@ jobs:
       - name: Image Metadata
         uses: docker/metadata-action@v5
         id: meta
+        env:
+          DESCRIPTION: A containerized python poetry image with ${{ matrix.variant }}
+          README: https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
         with:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          annotations: |
+            manifest:org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+            manifest:org.opencontainers.image.description=${{ env.DESCRIPTION }}
+            manifest:io.artifacthub.package.readme-url=${{ env.README }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
-            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
+            org.opencontainers.image.description=${{ env.DESCRIPTION }}
+            io.artifacthub.package.readme-url=${{ env.README }}
           tags: |
             type=sha,format=short,suffix=-${{ matrix.variant }}-${{ matrix.arch }}
 
@@ -100,7 +107,6 @@ jobs:
         run: |
           # NOTE: this only works because our metadata creates a single tag for build-image
           echo "${{ steps.build.outputs.tags }}" > image.txt
-          echo "${{ steps.meta.outputs.labels }}" > labels.txt
 
       - name: Upload image info artifact
         uses: actions/upload-artifact@v4
@@ -108,7 +114,6 @@ jobs:
           name: image-info-${{ matrix.variant }}-${{ matrix.arch }}
           path: |
             image.txt
-            labels.txt
 
   combine-manifest:
     name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
@@ -171,35 +176,19 @@ jobs:
             ARCH_IMAGES+=("$ref")
           done
 
-          # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
-          LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
-
-          # Prepare annotation
-          ANNOTATIONS=()
-          while IFS='=' read -r key value; do
-            [ -z "$key" ] && continue
-            ANNOTATIONS+=("$key=$value")
-          done < "$LABELS_FILE"
-
           echo "IMAGE=$IMAGE"
           echo "TAGS=${{ steps.meta.outputs.tags }}"
-          echo "ANNOTATIONS=${ANNOTATIONS}"
 
           IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
-            MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
-            podman manifest create $MANIFEST_REF
+            MANIFEST_REF="$IMAGE:$MANFIFEST_TAG"
+            podman manifest create "$MANFIFEST_REF"
 
             # Add all arch images
             for ref in "${ARCH_IMAGES[@]}"; do
               podman manifest add $MANIFEST_REF "docker://$ref"
-            done
-
-            for label in "${ANNOTATIONS[@]}"; do
-                echo "Annotating manifest with label "${label}""
-                podman manifest annotate --annotation "$label" "$MANIFEST_REF"
             done
 
             podman manifest push --all $MANIFEST_REF docker://$MANIFEST_REF
