@@ -37,6 +37,9 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    container:
+      image: "ghcr.io/ublue-os/devcontainer:latest"
+      options: "--privileged --volume /var/lib/containers:/var/lib/containers --security-opt seccomp=unconfined --security-opt label=disable --user 0:0"
     strategy:
       fail-fast: false
       matrix:
@@ -111,11 +114,14 @@ jobs:
   combine-manifest:
     name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
     runs-on: ubuntu-latest
+    needs: [get-versions, build-image]
     permissions:
       contents: read
       packages: write
       id-token: write
-    needs: [get-versions, build-image]
+    container:
+      image: "ghcr.io/ublue-os/devcontainer:latest"
+      options: "--privileged --volume /var/lib/containers:/var/lib/containers --security-opt seccomp=unconfined --security-opt label=disable --user 0:0"
     strategy:
       fail-fast: false
       matrix:
