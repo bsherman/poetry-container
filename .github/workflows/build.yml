@@ -183,7 +183,7 @@ jobs:
           # each tag gets its own manifest
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
-            MANIFEST_REF="$IMAGE:$MANFIFEST_TAG"
+            MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
             podman manifest create "$MANIFEST_REF"
 
             # Add all arch images
