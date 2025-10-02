@@ -22,7 +22,7 @@ ENV PATH="$PATH:/root/.local/bin"
 
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
-RUN bash <<'EOF'
+RUN <<EOF
 set -e
 ARCH=$(dpkg --print-architecture)
 PKGS=git
