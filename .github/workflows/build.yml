@@ -174,10 +174,10 @@ jobs:
           LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
 
           # Prepare annotation
-          ANNOTATIONS=""
+          ANNOTATIONS=()
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            ANNOTATIONS="$ANNOTATIONS \"$key=$value\""
+            ANNOTATIONS+=("$key=$value")
           done < "$LABELS_FILE"
 
           echo "IMAGE=$IMAGE"
@@ -196,9 +196,9 @@ jobs:
               podman manifest add $MANIFEST_REF "docker://$ref"
             done
 
-            for label in "${ANNOTATIONS}"; do
+            for label in "${ANNOTATIONS[@]}"; do
                 echo "Annotating manifest with label "${label}""
-                podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
+                podman manifest annotate --annotation "$label" "$MANIFEST_REF"
             done
 
             podman manifest push --all $MANIFEST_REF docker://$MANIFEST_REF
