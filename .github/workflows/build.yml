@@ -172,21 +172,26 @@ jobs:
           echo "IMAGE=$IMAGE"
           echo "TAGS=${{ steps.meta.outputs.tags }}"
 
-          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
+          IFS=$'\n' read -rd '' -a TAGS <<< "${{ steps.meta.outputs.tags }}"
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
             MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
-            MANIFEST_SHA=sha256:$(podman manifest create "$MANIFEST_REF")
-
-            podman manifest annotate --annotation "org.opencontainers.image.description=Description goes here" $MANIFEST_REF $MANIFEST_SHA
+            podman manifest create "$MANIFEST_REF"
 
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
-              podman manifest add $MANIFEST_REF "docker://$IMG_REF"
+              podman manifest add "$MANIFEST_REF" "docker://$IMG_REF"
             done
+            podman manifest push --all "$MANIFEST_REF" "docker://$MANIFEST_REF"
 
-            podman manifest push --all $MANIFEST_REF docker://$MANIFEST_REF
+            # Add annotations to manifest index
+            skopeo copy \
+              --all \
+              --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+              --additional-annotation "org.opencontainers.image.description=Sample description for $MANIFEST_TAG" \
+              "docker://$MANIFEST_REF" \
+              "docker://$MANIFEST_REF"
           done
 
       # Install Cosign
@@ -200,7 +205,7 @@ jobs:
           IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
           IMAGE="${IMAGE_REF%%:*}"
           # each tag gets its own manifest
-          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
+          IFS=$'\n' read -rd '' -a TAGS <<< "${{ steps.meta.outputs.tags }}"
           for MANIFEST_TAG in "${TAGS[@]}"; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE:$MANIFEST_TAG
           done
