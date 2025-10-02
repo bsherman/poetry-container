@@ -33,7 +33,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     needs: get-versions
     outputs:
-      image: ${{ split(steps.meta.outputs.images, ',')[0] }}
+      image: ${{ steps.first-image.outputs.image }}
     strategy:
       fail-fast: false
       matrix:
@@ -75,6 +75,11 @@ jobs:
             org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
 
+      - name: Set first image as output
+        id: first-image
+        run: |
+          echo "image=$(echo '${{ steps.meta.outputs.images }}' | cut -d',' -f1)" >> $GITHUB_OUTPUT
+
       - name: Login to registry
         run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
@@ -86,7 +91,7 @@ jobs:
             --build-arg PYTHON_VERSION=${{ matrix.python_version }} \
             --build-arg VARIANT="${{ matrix.variant }}" \
             ${{ steps.meta.outputs.labels }} \
-            -t ${{ split(steps.meta.outputs.images, ',')[0] }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }} \
+            -t ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }} \
             -f Containerfile .
 
       - name: Push image to registry
