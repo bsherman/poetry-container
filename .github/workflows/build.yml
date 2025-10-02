@@ -129,9 +129,6 @@ jobs:
           - "git"
           - "extras"
     steps:
-      - name: Install Podman
-        run: sudo apt-get update && sudo apt-get install -y podman
-
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
