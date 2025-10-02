@@ -76,18 +76,18 @@ jobs:
           containerfiles: |
             ./Containerfile
           image: ${{ env.IMAGE_NAME }}
+          tags: ${{ matrix-variant }}-${{ matrix.arch }}
           build-args: |
             POETRY_VERSION=${{ matrix.poetry }}
             PYTHON_VERSION=${{ matrix.python }}
             VARIANT=${{ matrix.variant }}
           labels: ${{ steps.meta.outputs.labels }}
-          oci: false
 
       - name: Save image info artifact
         run: |
           echo "${{ steps.meta.outputs.labels }}" > labels.txt
           echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" > name.txt
-          podman save --format oci-archive ${{ env.IMAGE_NAME }} | zstd - -o oci.tar.zst
+          podman save --format oci-archive ${{ steps.build.outputs.image-with-tag }} | zstd - -o oci.tar.zst
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
@@ -126,7 +126,7 @@ jobs:
 
       - name: Load Images
         run: |
-          for oci in images/oci*.zst; do
+          for oci in image/image-${{ matrix.variant }}-*/oci*.zst; do
             zstd --decompress --stdout oci.tar.zst | podman load
           done
           podman images
