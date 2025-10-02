@@ -103,6 +103,7 @@ jobs:
         run: |
           # NOTE: this only works because our metadata creates a single tag for build-image
           echo "${{ steps.build.outputs.tags }}" > image.txt
+          echo "${{ steps.meta.outputs.labels }}" > labels.txt
 
       - name: Upload image info artifact
         uses: actions/upload-artifact@v4
@@ -110,6 +111,7 @@ jobs:
           name: image-info-${{ matrix.variant }}-${{ matrix.arch }}
           path: |
             image.txt
+            labels.txt
 
   combine-manifest:
     name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
@@ -177,6 +179,17 @@ jobs:
             ARCH_IMAGES+=("$ref")
           done
 
+          # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
+          LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
+          # Prepare annotation
+          ANNOTATIONS=()
+          while IFS='=' read -r key value; do
+            [ -z "$key" ] && continue
+            anno="$key=$value"
+            echo "Found annotation: $anno"
+            ANNOTATIONS+=("$anno")
+          done < "$LABELS_FILE"
+
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
@@ -191,8 +204,10 @@ jobs:
             podman manifest create "$MANIFEST_REF"
 
             # Add annotations to manifest index
-            label="org.opencontainers.image.description=Sample description for $MANIFEST_TAG"
-            podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
+            for label in "${ANNOTATIONS[@]}"; do
+                echo "Annotating manifest with label "${label}""
+                podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
+            done
 
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
