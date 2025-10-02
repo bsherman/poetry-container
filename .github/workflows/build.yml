@@ -126,7 +126,7 @@ jobs:
 
       - name: Load Images
         run: |
-          for oci in image/image-${{ matrix.variant }}-*/oci*.zst; do
+          for oci in images/image-${{ matrix.variant }}-*/oci*.zst; do
             zstd --decompress --stdout oci.tar.zst | podman load
           done
           podman images
@@ -158,7 +158,7 @@ jobs:
           set -x
 
           # Find the first image.txt
-          IMAGE=$(head -n1 -q image/image-${{ matrix.variant }}-*/name.txt)
+          IMAGE=$(head -n1 -q images/image-${{ matrix.variant }}-*/name.txt)
           echo "Found IMAGE=$IMAGE"
 
           echo "Stop execution intentionally"
@@ -166,14 +166,14 @@ jobs:
 
           # Collect image references for all arches
           ARCH_IMAGES=()
-          for imgfile in image/image-*/name.txt; do
+          for imgfile in images/image-${{ matrix.variant }}-*/name.txt; do
             ref=$(cat "$imgfile")
             echo "Found image: $ref"
             ARCH_IMAGES+=("$ref")
           done
 
           # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
-          LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
+          LABELS_FILE=$(ls images/image-${{ matrix.variant }}--*/labels.txt | head -n1)
           # Prepare annotation
           ANNOTATIONS=()
           while IFS='=' read -r key value; do
@@ -217,7 +217,7 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
-          IMAGE=$(head -n1 -q image/image-${{ matrix.variant }}-*/name.txt)
+          IMAGE=$(head -n1 -q images/image-${{ matrix.variant }}-*/name.txt)
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
