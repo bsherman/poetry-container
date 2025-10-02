@@ -173,11 +173,11 @@ jobs:
           # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
           LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
 
-          # Prepare annotation args
+          # Prepare annotation args (with quoted values)
           ANNOTATION_ARGS=""
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            ANNOTATION_ARGS="$ANNOTATION_ARGS --annotation $key=$value"
+            ANNOTATION_ARGS="$ANNOTATION_ARGS --annotation \"$key=$value\""
           done < "$LABELS_FILE"
 
           echo "IMAGE=$IMAGE"
