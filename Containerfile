@@ -23,7 +23,6 @@ ENV PATH="$PATH:/root/.local/bin"
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
 RUN <<EOF
-set -e
 ARCH=$(dpkg --print-architecture)
 PKGS=git
 if [ "$VARIANT" = "extras" ]; then
@@ -34,9 +33,9 @@ if [ "$VARIANT" = "extras" ]; then
   #elif [ "$ARCH" = "arm64" ]; then
   fi
 fi
-apt-get update
-apt-get install -y ${PKGS}
-apt-get clean all
+apt-get update \
+&& apt-get install -y ${PKGS} \
+&& apt-get clean all
 EOF
 
 ENTRYPOINT [ "poetry" ]
