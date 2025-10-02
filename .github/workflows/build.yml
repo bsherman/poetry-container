@@ -170,10 +170,13 @@ jobs:
           done
 
           echo "IMAGE=$IMAGE"
-          echo "TAGS=${{ steps.meta.outputs.tags }}"
+          TAGS=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && tags+=("$line")
+          done <<< "${{ steps.meta.outputs.tags }}"
+          echo "TAGS=$TAGS"
 
           # each tag gets its own manifest
-          IFS=$'\n' read -rd '' -a TAGS <<< "${{ steps.meta.outputs.tags }}"
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
             MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
@@ -204,8 +207,11 @@ jobs:
         run: |
           IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
           IMAGE="${IMAGE_REF%%:*}"
+          TAGS=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && tags+=("$line")
+          done <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
-          IFS=$'\n' read -rd '' -a TAGS <<< "${{ steps.meta.outputs.tags }}"
           for MANIFEST_TAG in "${TAGS[@]}"; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE:$MANIFEST_TAG
           done
