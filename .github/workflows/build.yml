@@ -136,12 +136,20 @@ jobs:
         run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push manifests for all tags
+        shell: bash
         run: |
+          set -e
           IMAGE=${{ env.IMAGE }}
-          BUILD_TAG=sha-$(echo ${{ github.sha }} | cut -c1-7) }}-${{ matrix.variant }}
+          BUILD_TAG=sha-${GITHUB_SHA::7}-${{ matrix.variant }}
 
+          echo "IMAGE=$IMAGE"
+          echo "BUILD_TAG=$BUILD_TAG"
+          echo "TAGS=${{ steps.meta.outputs.tags }}"
+
+          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
-          for tag in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
+          for tag in "${TAGS[@]}"; do
+            echo "Creating and pushing manifest for $tag"
             podman manifest create $IMAGE:$tag
 
             # Add both arch images (built by previous jobs)
