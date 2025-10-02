@@ -130,7 +130,7 @@ jobs:
       - name: Download image info artifact
         uses: actions/download-artifact@v4
         with:
-          name: image-info-${{ matrix.variant }}-*
+          pattern: image-info-${{ matrix.variant }}-*
           path: image-info
 
       - name: Get timestamp
