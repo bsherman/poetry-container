@@ -54,10 +54,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Set up Buildah/Podman if needed (for example, install latest buildah)
-      - name: Install Buildah
-        run: sudo apt-get update && sudo apt-get install -y buildah podman
-
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
@@ -74,31 +70,41 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE }}
             org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository }}/main/README.md
+          tags: |
+            type=raw,${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }}
 
       - name: Set first image as output
         id: first-image
         run: |
           echo "image=$(echo '${{ steps.meta.outputs.images }}' | cut -d',' -f1)" >> $GITHUB_OUTPUT
 
-      - name: Login to registry
-        run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build image with Buildah
-        run: |
-          LABEL_ARGS=$(echo '${{ steps.meta.outputs.labels }}' | sed 's/^/--label /')
-          # shellcheck disable=SC2046
-          buildah bud \
-            --arch ${{ matrix.arch }} \
-            --build-arg POETRY_VERSION=${{ matrix.poetry_version }} \
-            --build-arg PYTHON_VERSION=${{ matrix.python_version }} \
-            --build-arg VARIANT="${{ matrix.variant }}" \
-            $LABEL_ARGS \
-            -t ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }} \
-            -f Containerfile .
+      - name: Build image
+        id: build_image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          containerfiles: |
+            ./Containerfile
+          image: ${{ steps.first-image.outputs.image }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+          build-args: |
+            POETRY_VERSION=${{ matrix.poetry_version }}
+            PYTHON_VERSION=${{ matrix.python_version }}
+            VARIANT=${{ matrix.variant }}
+          labels: ${{ steps.meta.outputs.labels }}
+          oci: false
 
       - name: Push image to registry
-        run: |
-          podman push ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }}
+        uses: redhat-actions/push-to-registry@v2
+        id: push
+        with:
+          image: ${{ steps.build_image.outputs.image }}
+          tags: ${{ steps.build_image.outputs.tags }}
+          registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          extra-args: |
+            --disable-content-trust
 
   combine-manifest:
     name: Combine manifests
