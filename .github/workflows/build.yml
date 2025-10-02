@@ -131,7 +131,7 @@ jobs:
             type=sha,format=short,suffix=${{ matrix.variant }}
             # Only add these tags if it's a push to main or workflow_dispatch on main
             # VARIANT, POETRYVERSION-VARIANT, POETRYVERSION-VARIANT-TIMESTAMP
-            ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && format('type=raw,value={0}\ntype=raw,value={1}-{0}\ntype=raw,value={1}-{0}-{2}', matrix.variant, matrix.poetry_version, steps.timestamp.outputs.ts || '' }}
+            ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && format('type=raw,value={0}\ntype=raw,value={1}-{0}\ntype=raw,value={1}-{0}-{2}', matrix.variant, matrix.poetry_version, steps.timestamp.outputs.ts) || '' }}
 
       - name: Login to registry
         run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
