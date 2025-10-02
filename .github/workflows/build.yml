@@ -85,8 +85,8 @@ jobs:
 
       - name: Save image info artifact
         run: |
+          echo "${{ steps.build.outputs.image-with-tag }}" > image.txt
           echo "${{ steps.meta.outputs.labels }}" > labels.txt
-          echo "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" > name.txt
           podman save --format oci-archive ${{ steps.build.outputs.image-with-tag }} | zstd - -o oci.tar.zst
 
       - name: Upload image artifact
@@ -94,8 +94,8 @@ jobs:
         with:
           name: image-${{ matrix.variant }}-${{ matrix.arch }}
           path: |
+            image.txt
             labels.txt
-            name.txt
             oci.tar.zst
 
   combine-manifest:
@@ -139,6 +139,8 @@ jobs:
         uses: docker/metadata-action@v5
         id: meta
         with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
             # PR tags
             type=ref,event=pr,suffix=-${{ matrix.variant }}
@@ -157,22 +159,15 @@ jobs:
           set -euo pipefail
           set -x
 
-          # Find the first image.txt
-          IMAGE=$(head -n1 -q images/image-${{ matrix.variant }}-*/name.txt)
-          echo "Found IMAGE=$IMAGE"
-
-          echo "Stop execution intentionally"
-          exit 2
-
-          # Collect image references for all arches
+          # Collect image references fram all arches in artifacts
           ARCH_IMAGES=()
-          for imgfile in images/image-${{ matrix.variant }}-*/name.txt; do
+          for imgfile in images/image-${{ matrix.variant }}-*/image.txt; do
             ref=$(cat "$imgfile")
-            echo "Found image: $ref"
+            echo "Found arch image: $ref"
             ARCH_IMAGES+=("$ref")
           done
 
-          # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
+          # Pick labels.txt from any of the arches in artifacts (identical for all images in each variant)
           LABELS_FILE=$(ls images/image-${{ matrix.variant }}--*/labels.txt | head -n1)
           # Prepare annotation
           ANNOTATIONS=()
@@ -183,6 +178,7 @@ jobs:
             ANNOTATIONS+=("$anno")
           done < "$LABELS_FILE"
 
+          # Collect all tags from metadata
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
@@ -193,7 +189,7 @@ jobs:
           # each tag gets its own manifest
           for MANIFEST_TAG in "${TAGS[@]}"; do
             echo "Creating and pushing manifest for $MANIFEST_TAG"
-            MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
+            MANIFEST_REF="${{ steps.meta.outputs.images }}:$MANIFEST_TAG"
             podman manifest create "$MANIFEST_REF"
 
             # Add annotations to manifest index
@@ -217,11 +213,12 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
-          IMAGE=$(head -n1 -q images/image-${{ matrix.variant }}-*/name.txt)
+          # Collect all tags from metadata
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
           done <<< "${{ steps.meta.outputs.tags }}"
+          # each manifest gets signed
           for MANIFEST_TAG in "${TAGS[@]}"; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE:$MANIFEST_TAG
+            cosign sign -y --key env://COSIGN_PRIVATE_KEY "${{ steps.meta.outputs.images }}:$MANIFEST_TAG"
           done
