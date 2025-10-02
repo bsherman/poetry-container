@@ -14,7 +14,7 @@ on:
 
 env:
   # yes, this is not DRY, but it keeps all the "config" in this one place
-  IMAGE: ghcr.ip/${{ github.repository_owner }}/poetry
+  IMAGE: ghcr.io/${{ github.repository_owner }}/poetry
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
 
@@ -92,9 +92,7 @@ jobs:
         uses: redhat-actions/push-to-registry@v2
         id: push
         with:
-          image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
-          registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           extra-args: |
