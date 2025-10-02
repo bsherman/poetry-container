@@ -13,8 +13,6 @@ on:
   workflow_dispatch:
 
 env:
-  # yes, this is not DRY, but it keeps all the "config" in this one place
-  IMAGE: ghcr.io/${{ github.repository_owner }}/poetry
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
 
@@ -98,6 +96,20 @@ jobs:
           extra-args: |
             --disable-content-trust
 
+      - name: Write image info artifact
+        run: |
+          # NOTE: this only works because our metadata creates a single tag for build-image
+          echo "${{ steps.build.outputs.tags }}" > image.txt
+          echo "${{ steps.meta.outputs.labels }}" > labels.txt
+
+      - name: Upload image info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-info-${{ matrix.variant }}-${{ matrix.arch }}
+          path: |
+            image.txt
+            labels.txt
+
   combine-manifest:
     name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
     runs-on: ubuntu-latest
@@ -115,6 +127,12 @@ jobs:
           - "git"
           - "extras"
     steps:
+      - name: Download image info artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-info-${{ matrix.variant }}-*
+          path: image-info
+
       - name: Get timestamp
         id: timestamp
         run: echo "ts=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
@@ -135,29 +153,51 @@ jobs:
       - name: Login to registry
         run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push manifests for all tags
+      - name: Create and push multi-arch manifest
         shell: bash
         run: |
           set -e
-          IMAGE=${{ env.IMAGE }}
-          BUILD_TAG=sha-${GITHUB_SHA::7}-${{ matrix.variant }}
+
+          # Find the first image.txt
+          IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
+          IMAGE="${IMAGE_REF%%:*}"
+
+          # Collect image references for all arches
+          ARCH_IMAGES=()
+          for imgfile in image-info/image-info-*/image.txt; do
+            ref=$(cat "$imgfile")
+            echo "Found image: $ref"
+            ARCH_IMAGES+=("$ref")
+          done
+
+          # Pick labels.txt from one of the arches (they should be the same for all images of the same variant)
+          LABELS_FILE=$(ls image-info/image-info-*/labels.txt | head -n1)
+
+          # Prepare annotation args
+          ANNOTATION_ARGS=""
+          while IFS='=' read -r key value; do
+            [ -z "$key" ] && continue
+            ANNOTATION_ARGS="$ANNOTATION_ARGS --annotation $key=$value"
+          done < "$LABELS_FILE"
 
           echo "IMAGE=$IMAGE"
-          echo "BUILD_TAG=$BUILD_TAG"
           echo "TAGS=${{ steps.meta.outputs.tags }}"
+          echo "ANNOTATION_ARGS=${ANNOTAION_ARGS}"
 
           IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
-          for tag in "${TAGS[@]}"; do
-            echo "Creating and pushing manifest for $tag"
-            podman manifest create $IMAGE:$tag
+          for MANIFEST_TAG in "${TAGS[@]}"; do
+            echo "Creating and pushing manifest for $MANIFEST_TAG"
+            MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
+            podman manifest create $MANIFEST_REF
 
-            # Add both arch images (built by previous jobs)
-            podman manifest add $IMAGE:$tag docker://$IMAGE:${BUILD_TAG}-amd64
-            podman manifest add $IMAGE:$tag docker://$IMAGE:${BUILD_TAG}-arm64
+            # Add all arch images
+            for ref in "${ARCH_IMAGES[@]}"; do
+              podman manifest add $MANIFEST_REF "docker://$ref"
+            done
 
-            # Push the manifest to registry
-            podman manifest push --all $IMAGE:$tag docker://$IMAGE:$tag
+            # Push manifest with all annotations
+            eval podman manifest push --all $ANNOTATION_ARGS $MANIFEST_REF docker://$MANIFEST_REF
           done
 
       # Install Cosign
