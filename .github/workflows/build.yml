@@ -62,7 +62,7 @@ jobs:
         id: meta
         with:
           images: |
-            ${{ env.IMAGE }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.description=A containerized python poetry image with ${{ matrix.variant }}
@@ -182,7 +182,7 @@ jobs:
 
           echo "IMAGE=$IMAGE"
           echo "TAGS=${{ steps.meta.outputs.tags }}"
-          echo "ANNOTATION_ARGS=${ANNOTAION_ARGS}"
+          echo "ANNOTATION_ARGS=${ANNOTATION_ARGS}"
 
           IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
           # each tag gets its own manifest
@@ -208,6 +208,10 @@ jobs:
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
-          for tag in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.IMAGE }}:$tag
+          IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
+          IMAGE="${IMAGE_REF%%:*}"
+          # each tag gets its own manifest
+          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
+          for MANIFEST_TAG in "${TAGS[@]}"; do
+            cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE:$MANIFEST_TAG
           done
