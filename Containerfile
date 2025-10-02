@@ -11,7 +11,7 @@ ARG PIP_NO_CACHE_DIR=off
 ARG PYTHONFAULTHANDLER=1
 ARG PYTHONUNBUFFERED=1
 
-ARG EXTRA_APT_PKGS=${EXTRA_APT_PKGS:-}
+ARG VARIANT=${VARIANT:-""}
 VOLUME /app
 
 VOLUME /root/.cache/pypoetry
@@ -22,8 +22,21 @@ ENV PATH="$PATH:/root/.local/bin"
 
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
-RUN apt-get update && \
-    apt-get install -y git ${EXTRA_APT_PKGS} && \
-    apt-get clean all
+RUN bash <<'EOF'
+set -e
+ARCH=$(dpkg --print-architecture)
+PKGS=git
+if [ "$VARIANT" = "extras" ]; then
+  PKGS="$PKGS build-essential dosfstools gcc isolinux liblzma-dev make mkisofs mtools"
+  if [ "$ARCH" = "amd64" ]; then
+    PKGS="$PKGS syslinux"
+  # uncomment and add pkgs for ARM if needed
+  #elif [ "$ARCH" = "arm64" ]; then
+  fi
+fi
+apt-get update
+apt-get install -y ${PKGS}
+apt-get clean all
+EOF
 
 ENTRYPOINT [ "poetry" ]
