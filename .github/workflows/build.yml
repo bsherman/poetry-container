@@ -76,7 +76,7 @@ jobs:
           containerfiles: |
             ./Containerfile
           image: ${{ env.IMAGE_NAME }}
-          tags: ${{ matrix-variant }}-${{ matrix.arch }}
+          tags: ${{ matrix.variant }}-${{ matrix.arch }}
           build-args: |
             POETRY_VERSION=${{ matrix.poetry }}
             PYTHON_VERSION=${{ matrix.python }}
