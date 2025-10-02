@@ -29,8 +29,6 @@ if [ "$VARIANT" = "extras" ]; then
   PKGS="$PKGS build-essential dosfstools gcc isolinux liblzma-dev make mkisofs mtools"
   if [ "$ARCH" = "amd64" ]; then
     PKGS="$PKGS syslinux"
-  # uncomment and add pkgs for ARM if needed
-  #elif [ "$ARCH" = "arm64" ]; then
   fi
 fi
 apt-get update \
