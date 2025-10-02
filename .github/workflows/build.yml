@@ -92,7 +92,7 @@ jobs:
             --build-arg POETRY_VERSION=${{ matrix.poetry_version }} \
             --build-arg PYTHON_VERSION=${{ matrix.python_version }} \
             --build-arg VARIANT="${{ matrix.variant }}" \
-            $(echo "$LABEL_ARGS") \
+            $LABEL_ARGS \
             -t ${{ steps.first-image.outputs.image }}:${{ github.sha }}-${{ matrix.variant }}-${{ matrix.arch }} \
             -f Containerfile .
 
