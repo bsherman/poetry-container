@@ -126,6 +126,7 @@ jobs:
 
       - name: Load Images
         run: |
+          find images
           for oci in images/image-${{ matrix.variant }}-*/oci*.zst; do
             zstd --decompress --stdout oci.tar.zst | podman load
           done
