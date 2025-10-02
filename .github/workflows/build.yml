@@ -189,19 +189,15 @@ jobs:
             MANIFEST_REF="$IMAGE:$MANIFEST_TAG"
             podman manifest create "$MANIFEST_REF"
 
+            # Add annotations to manifest index
+            label="org.opencontainers.image.description=Sample description for $MANIFEST_TAG"
+            podman manifest annotate --index --annotation "$label" "${MANIFEST}"
+
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
               podman manifest add "$MANIFEST_REF" "docker://$IMG_REF"
             done
             podman manifest push --all "$MANIFEST_REF" "docker://$MANIFEST_REF"
-
-            # Add annotations to manifest index
-            skopeo copy \
-              --all \
-              --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
-              --additional-annotation "org.opencontainers.image.description=Sample description for $MANIFEST_TAG" \
-              "docker://$MANIFEST_REF" \
-              "docker://$MANIFEST_REF"
           done
 
       # Install Cosign
