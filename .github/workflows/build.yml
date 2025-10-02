@@ -32,7 +32,7 @@ jobs:
         run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
 
   build-image:
-    name: Build image (${{ matrix.variant }}, ${{ matrix.arch }})
+    name: Build image (${{ matrix.poetry }}, $${{ matrix.variant }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     needs: get-versions
     permissions:
@@ -99,7 +99,7 @@ jobs:
             --disable-content-trust
 
   combine-manifest:
-    name: Combine manifests
+    name: Combine manifests (${{ matrix.poetry }}, ${{ matrix.variant }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -119,7 +119,7 @@ jobs:
         id: timestamp
         run: echo "ts=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
 
-      - name: Image Metadata
+      - name: Manifest Metadata
         uses: docker/metadata-action@v5
         id: meta
         with:
