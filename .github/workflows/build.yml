@@ -196,7 +196,7 @@ jobs:
               podman manifest add $MANIFEST_REF "docker://$ref"
             done
 
-            for label in "${ANNOTATIONS[@]}"; do
+            for label in "${ANNOTATIONS}"; do
                 echo "Annotating manifest with label "${label}""
                 podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
             done
