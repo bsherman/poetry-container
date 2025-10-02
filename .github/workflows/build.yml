@@ -160,12 +160,14 @@ jobs:
       - name: Create and push multi-arch manifest
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           set -x
 
           # Find the first image.txt
           IMAGE_REF=$(cat image-info/image-info-*/image.txt | head -n1)
+          echo "Found IMAGE_REF=$IMAGE_REF"
           IMAGE="${IMAGE_REF%%:*}"
+          echo "IMAGE=$IMAGE"
 
           # Collect image references for all arches
           ARCH_IMAGES=()
@@ -175,7 +177,6 @@ jobs:
             ARCH_IMAGES+=("$ref")
           done
 
-          echo "IMAGE=$IMAGE"
           TAGS=()
           while IFS= read -r line; do
             [ -n "$line" ] && TAGS+=("$line")
