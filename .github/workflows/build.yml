@@ -233,7 +233,7 @@ jobs:
         run: |
           # copy podman login credentials to the docker location for cosign to use
           mkdir -p ~/.docker
-          cat ${XDG_RUNTIME_DIR}/containers/auth.json > ~/.docker/config.json
+          cat "$XDG_RUNTIME_DIR/containers/auth.json" > ~/.docker/config.json
           # Collect all tags from metadata
           TAGS=()
           while IFS= read -r line; do
