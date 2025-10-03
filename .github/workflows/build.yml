@@ -243,10 +243,12 @@ jobs:
           done <<< "${{ steps.meta.outputs.tags }}"
           # each manifest gets signed
           for MANIFEST_REF in "${TAGS[@]}"; do
-            MANIFEST_DIGEST=$(skopeo inspect docker://$MANIFEST_REF | jq -r .Digest)
+            DIGEST=$(skopeo inspect docker://$MANIFEST_REF | jq -r .Digest)
+            IMAGE=$(echo $MANIFEST_REF | cut -f1 -d:)
             cosign sign -y \
               --registry-username='${{ github.actor }}' \
               --registry-password='${{ secrets.GITHUB_TOKEN }}' \
               --key env://COSIGN_PRIVATE_KEY \
-              "$MANIFEST_DIGEST"
+              --recursive \
+              "$IMAGE@$DIGEST"
           done
