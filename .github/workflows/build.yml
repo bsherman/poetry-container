@@ -146,7 +146,7 @@ jobs:
         id: meta
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
             # PR tags
             type=ref,event=pr,suffix=-${{ matrix.variant }}
@@ -204,8 +204,10 @@ jobs:
 
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
+              echo "Adding $IMG_REF to manifest"
               podman manifest add "$MANIFEST_REF" "$IMG_REF"
             done
+            echo "Pushing manifest: $MANIFEST_REF"
             podman manifest push --all "$MANIFEST_REF" "docker://$MANIFEST_REF"
           done
 
