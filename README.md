@@ -14,7 +14,7 @@ It can be used to execute poetry locally (in container) to use a `pyproject.toml
 Python-slim docker images (based on Debian) are used as this builds libc compatible python shared objects.
 
 
-The image is based on the [offical python alpine image](https://hub.docker.com/_/python) for minimal size.
+The image is based on the [official python alpine image](https://hub.docker.com/_/python) for minimal size.
 
 The image builds weekly, and automatically builds the latest python 3.11.x and poetry combo.
 
