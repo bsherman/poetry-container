@@ -167,7 +167,7 @@ jobs:
                 && format('type=raw,value={1}-{0}-{2}', matrix.variant, matrix.poetry, steps.timestamp.outputs.ts) || '' }}
 
       - name: Login to registry
-        run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+        run: podman login --verbose ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push multi-arch manifest
         shell: bash
