@@ -233,7 +233,6 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
-          COSIGN_REGISTRY: ${{ env.REGISTRY }}
         shell: bash
         run: |
           # Collect all tags from metadata
@@ -243,5 +242,10 @@ jobs:
           done <<< "${{ steps.meta.outputs.tags }}"
           # each manifest gets signed
           for MANIFEST_REF in "${TAGS[@]}"; do
-            cosign sign -y --registry-username='${{ github.actor }}' --registry-password='${{ secrets.GITHUB_TOKEN }}' --key env://COSIGN_PRIVATE_KEY "$MANIFEST_REF"
+            MANIFEST_DIGEST=$(skopeo inspect docker://$MANIFEST_REF | jq -r .Digest)
+            cosign sign -y \
+              --registry-username='${{ github.actor }}' \
+              --registry-password='${{ secrets.GITHUB_TOKEN }}' \
+              --key env://COSIGN_PRIVATE_KEY \
+              "$MANIFEST_DIGEST"
           done
