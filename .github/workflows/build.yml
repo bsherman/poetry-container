@@ -187,9 +187,8 @@ jobs:
           echo "Number of tags: ${#TAGS[@]}"
 
           # each tag gets its own manifest
-          for MANIFEST_TAG in "${TAGS[@]}"; do
-            echo "Creating and pushing manifest for $MANIFEST_TAG"
-            MANIFEST_REF="${{ steps.meta.outputs.images }}:$MANIFEST_TAG"
+          for MANIFEST_REF in "${TAGS[@]}"; do
+            echo "Creating and pushing manifest for $MANIFEST_REF"
             podman manifest create "$MANIFEST_REF"
 
             # Add annotations to manifest index
@@ -220,6 +219,6 @@ jobs:
             [ -n "$line" ] && TAGS+=("$line")
           done <<< "${{ steps.meta.outputs.tags }}"
           # each manifest gets signed
-          for MANIFEST_TAG in "${TAGS[@]}"; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY "${{ steps.meta.outputs.images }}:$MANIFEST_TAG"
+          for MANIFEST_REF in "${TAGS[@]}"; do
+            cosign sign -y --key env://COSIGN_PRIVATE_KEY "$MANIFEST_REF"
           done
