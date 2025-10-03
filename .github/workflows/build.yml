@@ -23,17 +23,17 @@ jobs:
     name: Get poetry version
     runs-on: ubuntu-latest
     outputs:
-      poetry: ${{ steps.poetry.outputs.poetry }}
-      python: ${{ steps.poetry.outputs.python }}
+      poetry: ${{ steps.poetry.outputs.version }}
+      python: ${{ steps.python.outputs.version }}
     steps:
       - name: Fetch poetry versions
         run: curl "https://release-monitoring.org/api/v2/versions/?project_id=32514" -o poetry.json
       - name: Get poetry version
         id: poetry
-        run: echo "poetry=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
+        run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
       - name: Get python version
         id: python
-        run: echo "python=3.11" >> $GITHUB_OUTPUT
+        run: echo "version=3.11" >> $GITHUB_OUTPUT
 
   build-image:
     name: Build image (${{ matrix.poetry }}, ${{ matrix.variant }}, ${{ matrix.arch }})
