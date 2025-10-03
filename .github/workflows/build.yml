@@ -198,7 +198,7 @@ jobs:
 
             # Add annotations to manifest index
             for label in "${ANNOTATIONS[@]}"; do
-                echo "Annotating manifest with label "${label}""
+                echo "Annotating manifest with label ${label}"
                 podman manifest annotate --index --annotation "$label" "$MANIFEST_REF"
             done
 
