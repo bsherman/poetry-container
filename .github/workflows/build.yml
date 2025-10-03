@@ -233,6 +233,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_REGISTRY: ${{ env.REGISTRY }}
         shell: bash
         run: |
           # Collect all tags from metadata
