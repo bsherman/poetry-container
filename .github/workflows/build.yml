@@ -231,11 +231,9 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_REGISTRY: ${{ env.REGISTRY }}
         shell: bash
         run: |
-          # copy podman login credentials to the docker location for cosign to use
-          mkdir -p /etc/docker
-          cp -a /run/containers/0/auth.json /etc/docker/config.json
           # Collect all tags from metadata
           TAGS=()
           while IFS= read -r line; do
@@ -243,5 +241,5 @@ jobs:
           done <<< "${{ steps.meta.outputs.tags }}"
           # each manifest gets signed
           for MANIFEST_REF in "${TAGS[@]}"; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY "$MANIFEST_REF"
+            cosign sign -y --registry-username='${{ github.actor }}' --registry-password='${{ secrets.GITHUB_TOKEN }}' --key env://COSIGN_PRIVATE_KEY "$MANIFEST_REF"
           done
