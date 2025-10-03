@@ -14,9 +14,13 @@ It can be used to execute poetry locally (in container) to use a `pyproject.toml
 Python-slim docker images (based on Debian) are used as this builds libc compatible python shared objects.
 
 
-The image is based on the [offical python alpine image](https://hub.docker.com/_/python) for minimal size.
+The image is based on the [official python alpine image](https://hub.docker.com/_/python) for minimal size.
 
-The image builds daily, and automatically builds the latest python 3.11.x and poetry combo.
+The image builds weekly, and automatically builds the latest python 3.11.x and poetry combo.
+
+In addition, there are two variants:
+- `poetry:git` (formerly `poetry:latest`) is just poetry plus git
+- `poetry:extras` contains git and extra tools for specific use cases
 
 ## How do I use it?
 
@@ -32,7 +36,7 @@ alias poetry='if ! [ -d "$HOME/.cache/pypoetry" ]; \
     -v "$PWD:/pwd" \
     -v "$HOME/.cache/pypoetry:/root/.cache/pypoetry" \
     --net=host \
-    ghcr.io/bsherman/poetry:latest "$@"'
+    ghcr.io/bsherman/poetry:git "$@"'
 ```
 
 Of course, you can also put that in a shell script if you prefer by running the following:
@@ -48,7 +52,7 @@ podman run --rm -it \\
   -v "\$PWD:/pwd" \\
   -v "\$HOME/.cache/pypoetry:/root/.cache/pypoetry" \\
   --net=host \\
-  ghcr.io/bsherman/poetry:latest "\$@"
+  ghcr.io/bsherman/poetry:git "\$@"
 EOF
 chmod +x $HOME/bin/poetry
 ```
@@ -57,7 +61,7 @@ chmod +x $HOME/bin/poetry
 The alias/script above automatically installs the container image, but wont' update it. To do that, run:
 
 ```bash
-podman pull ghcr.io/bsherman/poetry:latest
+podman pull ghcr.io/bsherman/poetry:git
 ```
 
 ## Disclaimer
@@ -70,4 +74,4 @@ There is no warranty, but you can read what little code exists in this repositor
 
 These images are signed with sigstore's [cosign](https://docs.sigstore.dev/cosign/overview/). You can verify the signature by downloading the `cosign.pub` key from this repo and running the appropriate command:
 
-    cosign verify --key cosign.pub ghcr.io/bsherman/poetry
+    cosign verify --key cosign.pub ghcr.io/bsherman/poetry:git
