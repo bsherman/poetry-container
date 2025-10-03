@@ -207,7 +207,7 @@ jobs:
 
             # Add all arch images
             for IMG_REF in "${ARCH_IMAGES[@]}"; do
-              podman manifest add "$MANIFEST_REF" "docker://$IMG_REF"
+              podman manifest add "$MANIFEST_REF" "$IMG_REF"
             done
             podman manifest push --all "$MANIFEST_REF" "docker://$MANIFEST_REF"
           done
