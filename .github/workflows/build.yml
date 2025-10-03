@@ -85,7 +85,7 @@ jobs:
 
       - name: Save image info artifact
         run: |
-          echo "${{ steps.build.outputs.image-with-tag }}" > image.txt
+          echo "localhost/${{ steps.build.outputs.image-with-tag }}" > image.txt
           echo "${{ steps.meta.outputs.labels }}" > labels.txt
           podman save --format oci-archive ${{ steps.build.outputs.image-with-tag }} | zstd - -o oci.tar.zst
 
@@ -129,7 +129,6 @@ jobs:
           for oci in images/image-${{ matrix.variant }}-*/oci*.zst; do
             zstd --decompress --stdout "$oci" | podman load
           done
-          podman images
 
       - name: Get timestamp
         id: timestamp
@@ -173,9 +172,9 @@ jobs:
           ANNOTATIONS=()
           while IFS='=' read -r key value; do
             [ -z "$key" ] && continue
-            anno="$key=$value"
-            echo "Found annotation: $anno"
-            ANNOTATIONS+=("$anno")
+            label="$key=$value"
+            echo "Found label: $label"
+            ANNOTATIONS+=("$label")
           done < "$LABELS_FILE"
 
           # Collect all tags from metadata
