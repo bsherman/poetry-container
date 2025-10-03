@@ -13,6 +13,8 @@ on:
   workflow_dispatch:
 
 env:
+  # it's not perfectly DRY, but it saves other headaches, and keeps config here
+  IMAGE: ghcr.io/${{ github.repository_owner }}/poetry
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
 
@@ -21,13 +23,17 @@ jobs:
     name: Get poetry version
     runs-on: ubuntu-latest
     outputs:
-      poetry: ${{ steps.poetry.outputs.version }}
+      poetry: ${{ steps.poetry.outputs.poetry }}
+      python: ${{ steps.poetry.outputs.python }}
     steps:
       - name: Fetch poetry versions
         run: curl "https://release-monitoring.org/api/v2/versions/?project_id=32514" -o poetry.json
       - name: Get poetry version
         id: poetry
-        run: echo "version=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
+        run: echo "poetry=$(jq -r '.stable_versions[0]' poetry.json)" >> $GITHUB_OUTPUT
+      - name: Get python version
+        id: python
+        run: echo "python=3.11" >> $GITHUB_OUTPUT
 
   build-image:
     name: Build image (${{ matrix.poetry }}, ${{ matrix.variant }}, ${{ matrix.arch }})
@@ -52,7 +58,7 @@ jobs:
         poetry:
           - ${{ needs.get-versions.outputs.poetry }}
         python:
-          - "3.11"
+          - ${{ needs.get-versions.outputs.python }}
         variant:
           - "git"
           - "extras"
@@ -75,7 +81,7 @@ jobs:
         with:
           containerfiles: |
             ./Containerfile
-          image: ${{ env.IMAGE_NAME }}
+          image: ${{ env.IMAGE }}
           tags: ${{ matrix.variant }}-${{ matrix.arch }}
           build-args: |
             POETRY_VERSION=${{ matrix.poetry }}
@@ -139,7 +145,7 @@ jobs:
         id: meta
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+            ${{ env.IMAGE }}
           tags: |
             # PR tags
             type=ref,event=pr,suffix=-${{ matrix.variant }}
