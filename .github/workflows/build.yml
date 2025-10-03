@@ -13,8 +13,6 @@ on:
   workflow_dispatch:
 
 env:
-  # it's not perfectly DRY, but it saves other headaches, and keeps config here
-  IMAGE: ghcr.io/${{ github.repository_owner }}/poetry
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
   # variables which could likely change out side of this env block
@@ -84,7 +82,7 @@ jobs:
         with:
           containerfiles: |
             ./Containerfile
-          image: ${{ env.IMAGE }}
+          image: ${{ env.IMAGE_NAME }}
           tags: ${{ matrix.variant }}-${{ matrix.arch }}
           build-args: |
             POETRY_VERSION=${{ matrix.poetry }}
@@ -148,7 +146,7 @@ jobs:
         id: meta
         with:
           images: |
-            ${{ env.IMAGE }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE }}
           tags: |
             # PR tags
             type=ref,event=pr,suffix=-${{ matrix.variant }}
@@ -165,7 +163,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          set -x
 
           # Collect image references fram all arches in artifacts
           ARCH_IMAGES=()
