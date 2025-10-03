@@ -89,9 +89,9 @@ jobs:
             VARIANT=${{ matrix.variant }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Save image info artifact
+      - name: Save image artifact
         run: |
-          echo "localhost/${{ steps.build.outputs.image-with-tag }}" > image.txt
+          echo "${{ steps.build.outputs.image-with-tag }}" > image.txt
           echo "${{ steps.meta.outputs.labels }}" > labels.txt
           podman save --format oci-archive ${{ steps.build.outputs.image-with-tag }} | zstd - -o oci.tar.zst
 
