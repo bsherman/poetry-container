@@ -17,6 +17,9 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/poetry
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
+  # variables which could likely change out side of this env block
+  # - python version (see get-versions job below)
+  # - variant list: [git, extras], changing this requires modification of matrix in two jobs below
 
 jobs:
   get-versions:
