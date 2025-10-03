@@ -212,7 +212,9 @@ jobs:
           done
 
       # Install Cosign
-      - uses: sigstore/cosign-installer@v3.0.2
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.0.2
+        if: github.event_name != 'pull_request'
 
       - name: Sign multi-arch manifest with Cosign
         if: github.event_name != 'pull_request'
