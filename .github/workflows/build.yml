@@ -148,13 +148,13 @@ jobs:
           images: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            # PR tags
-            type=ref,event=pr,suffix=-${{ matrix.variant }}
-            # Only add these tags if it's a push to main or workflow_dispatch on main
-            # VARIANT, POETRYVERSION-VARIANT, POETRYVERSION-VARIANT-TIMESTAMP
-            ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && format('type=raw,value={0}\ntype=raw,value={1}-{0}\ntype=raw,value={1}-{0}-{2},priority=300', matrix.variant, matrix.poetry, steps.timestamp.outputs.ts) || '' }}
             # SHA tag (short)
             type=sha,format=short,suffix=-${{ matrix.variant }}
+            # PR tag
+            type=ref,event=pr,suffix=-${{ matrix.variant }}
+            # Tags only for push to main or workflow_dispatch on main
+            # VARIANT, POETRYVERSION-VARIANT, POETRYVERSION-VARIANT-TIMESTAMP
+            ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && format('type=raw,value={0}\ntype=raw,value={1}-{0}\ntype=raw,value={1}-{0}-{2},priority=300', matrix.variant, matrix.poetry, steps.timestamp.outputs.ts) || '' }}
 
       - name: Login to registry
         run: podman login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
