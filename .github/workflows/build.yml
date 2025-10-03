@@ -164,7 +164,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Collect image references fram all arches in artifacts
+          # Collect image references from all arches in artifacts
           ARCH_IMAGES=()
           for imgfile in images/image-${{ matrix.variant }}-*/image.txt; do
             ref=$(cat "$imgfile")
