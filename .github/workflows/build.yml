@@ -12,6 +12,10 @@ on:
       - '**/README.md'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IMAGE_NAME: poetry
   REGISTRY: ghcr.io
