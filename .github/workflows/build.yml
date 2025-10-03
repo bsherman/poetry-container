@@ -168,7 +168,7 @@ jobs:
           done
 
           # Pick labels.txt from any of the arches in artifacts (identical for all images in each variant)
-          LABELS_FILE=$(ls images/image-${{ matrix.variant }}--*/labels.txt | head -n1)
+          LABELS_FILE=$(ls images/image-${{ matrix.variant }}-*/labels.txt | head -n1)
           # Prepare annotation
           ANNOTATIONS=()
           while IFS='=' read -r key value; do
@@ -212,6 +212,7 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+        shell: bash
         run: |
           # Collect all tags from metadata
           TAGS=()
