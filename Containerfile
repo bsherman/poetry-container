@@ -22,18 +22,20 @@ ENV PATH="$PATH:/root/.local/bin"
 
 RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 
-RUN set -e && \
-    ARCH=$(dpkg --print-architecture) && \
-    PKGS=git && \
-    if [ "$VARIANT" = "extras" ]; then \
-      PKGS="$PKGS build-essential dosfstools gcc isolinux liblzma-dev make mkisofs mtools"; \
-      if [ "$ARCH" = "amd64" ]; then \
-        PKGS="$PKGS syslinux"; \
-      fi; \
+RUN <<EOR
+set -e
+ARCH=$(dpkg --print-architecture)
+PKGS=git
+if [ "$VARIANT" = "extras" ]; then
+      PKGS="$PKGS build-essential dosfstools gcc isolinux liblzma-dev make mkisofs mtools"
+      if [ "$ARCH" = "amd64" ]; then
+        PKGS="$PKGS syslinux"
+      fi
       #elif [ "$ARCH" = "arm64" ]; then
-    fi && \
-    apt-get update && \
-    apt-get install -y ${PKGS} && \
-    apt-get clean all
+fi
+apt-get update
+apt-get install -y ${PKGS}
+apt-get clean all
+EOR
 
 ENTRYPOINT [ "poetry" ]
