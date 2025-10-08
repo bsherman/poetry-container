@@ -25,7 +25,7 @@ RUN pip install --user poetry==${POETRY_VERSION} && poetry --version
 RUN <<EOR
 set -e
 ARCH=$(dpkg --print-architecture)
-PKGS=git
+PKGS="curl git"
 if [ "$VARIANT" = "extras" ]; then
       PKGS="$PKGS build-essential dosfstools gcc isolinux liblzma-dev make mkisofs mtools"
       if [ "$ARCH" = "amd64" ]; then
